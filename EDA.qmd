@@ -1,0 +1,138 @@
+---
+title: "ST 558: Final Project (EDA)"
+authors: "Scott Van Slyck"
+description: "Exploratory Data analysis for our dataset."
+date: "July 29, 2024"
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: FALSE
+
+packages <- c("tidyverse")
+
+install_if_missing <- function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+  }
+}
+
+lapply(packages, install_if_missing)
+```
+
+## Introduction
+
+For this final project, we will be working with a dataset from the Diabetes Health Indicators with a response variable indicating whether a patient doesn't have diabetes or has diabetes. The variables that we will be investigating in comparison to the response variable are shown below:
+
+-   HighBP: High Blood Pressure
+    -   0 = not high
+    -   1 = high BP
+-   BMI: Body Mass Index
+-   Smoker
+    -   0 = \>100 cigarettes smoked in your entire life
+    -   1 = \<100 cigarettes smoked in your entire life
+-   PhysActivity
+    -   0 = no physical activity in the past 30 days
+    -   1 = yes physical activity in the past 30 days
+-   Veggies: Consume vegetables 1 or more times per day
+    -   0 = no
+    -   1 = yes
+-   Sex
+    -   0 = female
+    -   1 = male
+-   Age: 13-level age category
+    -   1 = 18-24
+    -   9 = 60-64
+    -   13 = 80 or older
+-   Income: 8-level scale
+    -   1 = less than \$10,000
+    -   5 = less than \$35,000
+    -   8 = \$75,000 or more
+
+## Purpose of EDA and Ultimate Goal of Modeling
+
+The purpose of our Exploratory Data Analysis (EDA) is to understand the underlying patterns and relationships in the dataset, particularly how the different variables relate to the presence or absence of diabetes. Through EDA, we aim to:
+
+-   Identify and handle missing data
+-   Detect outliers and understand their impact
+-   Explore the distribution of variables
+-   Analyze correlations between variables
+
+The ultimate goal of our modeling is to develop a predictive model that can accurately classify individuals into one of three categories: no diabetes, prediabetes, or diabetes. By understanding the indicators and risks associated with diabetes, we hope to create a model that can assist healthcare professionals in early detection and intervention, potentially improving patient outcomes.
+
+## Data
+
+Reading in the data using a relative path and manipulating it
+
+```{r}
+# reading in the csv file
+DBH <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv")
+
+# selecting the variables I want
+DBH <- DBH %>% select(Diabetes_binary, HighBP, BMI, Smoker, PhysActivity, Veggies, Sex, Age, Income)
+
+# Changing the possible factor variables into factors
+DBH$Diabetes_binary <- factor(DBH$Diabetes_binary, levels = c(0, 1), labels = c("No Diabetes", "Diabetes"))
+DBH$HighBP <- factor(DBH$HighBP, levels = c(0,1), labels = c("Not High", "High"))
+DBH$Smoker <- factor(DBH$Smoker, levels = c(0,1), labels = c("No", "Yes"))
+DBH$PhysActivity <- factor(DBH$PhysActivity, levels = c(0,1), labels = c("No", "Yes"))
+DBH$Veggies <- factor(DBH$Veggies, levels = c(0,1), labels = c("No", "Yes"))
+DBH$Sex <- factor(DBH$Sex, levels = c(0,1), labels = c("Female", "Male"))
+DBH$Age <- factor(DBH$Age, levels = 1:13,
+                  labels = c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", 
+                             "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"))
+DBH$Income <- factor(DBH$Income, 
+                     levels = 1:8, 
+                     labels = c("Less than $10,000", "$10,000 to $14,999", "$15,000 to $19,999", 
+                                "$20,000 to $24,999", "$25,000 to $34,999", "$35,000 to $49,999", 
+                                "$50,000 to $74,999", "$75,000 or more"))
+
+# Checking for N/A values
+colSums(is.na(DBH))
+
+# None found so we are good to move on!
+```
+
+## Summarizations
+
+First we will start with summary statistics for our data
+
+```{r}
+summary(DBH)
+
+by(DBH, DBH$Diabetes_binary, summary)
+
+```
+
+Now we will create some visualizations to help better understand our data. First a bar plot to show distribution of patients across the two categories, this gives us a sense of the prevalence of the condition in the dataset.
+
+```{r}
+ggplot(DBH, aes(x = Diabetes_binary)) + 
+  geom_bar(fill = "darkblue") + 
+  labs(title = "Distribution of Diabetes Status", x = "Diabetes Status", y = "Count")
+```
+
+
+Next, a bar plot that demonstrates the proportion of individuals with high blood pressure across the diabetes status. This allows us to observe if high blood pressure is more common in people with or without diabetes.
+```{r}
+ggplot(DBH, aes(x = Diabetes_binary, fill = HighBP)) + 
+  geom_bar(position = "fill") + 
+  labs(title = "High Blood Pressure vs Diabetes Status", x = "Diabetes Status", y = "Proportion", fill = "High BP")
+```
+
+This box plot shows the distribution of BMI values across the diabetes status, this helps identify if there is a significant difference in BMI across the diabetes variable.
+```{r}
+ggplot(DBH, aes(x = Diabetes_binary, y = BMI, fill = Diabetes_binary)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = c(quantile(DBH$BMI, 0.05), quantile(DBH$BMI, 0.95))) +
+  labs(title = "BMI vs. Diabetes Status", x = "Diabetes Status", y = "BMI")
+```
+
+Lastly, a bar plot that helps indicate the distribution of age groups across the different diabetes status, it helps reveal if certain age groups are more susceptible to diabetes or not.
+```{r}
+ggplot(DBH, aes(x = Diabetes_binary, fill = Age)) +
+  geom_bar(position = "fill") +
+  labs(title = "Age vs. Diabetes Status", x = "Diabetes Status", y = "Proportion", fill = "Age Group")
+```

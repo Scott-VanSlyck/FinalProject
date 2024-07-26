@@ -1,0 +1,35 @@
+title: "ST 558: Final Project (Modeling)"
+authors: "Scott Van Slyck"
+description: "Modeling File for Final Project"
+date: "July 29, 2024"
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: FALSE
+
+packages <- c("tidyverse")
+
+install_if_missing <- function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+  }
+}
+
+lapply(packages, install_if_missing)
+```
+
+## Introduction
+
+
+## Logistic Regression Models
+
+## Classification Tree
+
+## Random Forest
+
+## Final Model Selection
+
+
