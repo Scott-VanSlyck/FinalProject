@@ -9,7 +9,7 @@ editor: visual
 ```{r}
 #| echo: FALSE
 
-packages <- c("tidyverse", "caret", "glmnet")
+packages <- c("tidyverse", "caret", "glmnet", "MASS")
 
 install_if_missing <- function(package) {
   if (!require(package, character.only = TRUE)) {
@@ -56,18 +56,22 @@ set.seed(270)
 log_model1 <- train(Diabetes_binary ~ ., data = trainData, method = "glm", family = "binomial", 
                     trControl = train_control, metric = "logLoss")
 
-# Model 2: Logistic Regression with Stepwise Selection
-log_model2 <- train(Diabetes_binary ~ ., data = trainData, method = "glmStepAIC", family = "binomial", 
-                    trControl = train_control, direction = "backward",  metric = "logLoss")
+# Model 2: Logistic Regression with selected predictors
+selected_predictors2 <- c("HighBP", "BMI", "Smoker", "PhysActivity")
+formula2 <- as.formula(paste("Diabetes_binary ~", paste(selected_predictors2, collapse = " + ")))
 
-# Model 3: LASSO Logistic Regression
-lasso_grid <- expand.grid(alpha = 1, lambda = seq(0, 1, by = 0.1))
+log_model2 <- train(formula2, data = trainData, method = "glm", family = "binomial", 
+                    trControl = train_control, metric = "logLoss")
 
-lasso_log_model <- train(Diabetes_binary ~ ., data = trainData, method = "glmnet", 
-                         trControl = train_control, metric = "logLoss", tuneGrid = lasso_grid)
+# Model 3: Logistic Regression with another set of selected predictors
+selected_predictors3 <- c("Veggies", "Sex", "Age", "Income")
+formula3 <- as.formula(paste("Diabetes_binary ~", paste(selected_predictors3, collapse = " + ")))
+
+log_model3 <- train(formula3, data = trainData, method = "glm", family = "binomial", 
+                    trControl = train_control, metric = "logLoss")
 
 # Compare models
-resamples_log <- resamples(list(Basic = log_model1, Stepwise = log_model2, LASSO = lasso_log_model))
+resamples_log <- resamples(list(Full = log_model1, Reduced1 = log_model2, Reduced2 = log_model3))
 summary(resamples_log)
 ```
 
@@ -91,7 +95,7 @@ set.seed(270)
 rf_grid <- expand.grid(mtry = seq(2, ncol(trainData)-1, by = 2))
 
 rf_model <- train(Diabetes_binary ~ ., data = trainData, method = "rf", 
-                  trControl = train_control, metric = "logLoss", tuneGrid = rf_grid)
+                  trControl = train_control, metric = "logLoss", tuneGrid = rf_grid, ntree = 100)
 
 # Print random forest model
 print(rf_model)
@@ -99,4 +103,33 @@ print(rf_model)
 
 ## Final Model Selection
 
+```{r}
+# Predict on the test set using the best logistic regression model
+log_preds <- predict(log_model1, newdata = testData, type = "prob")
+log_loss_test1 <- mnLogLoss(log_preds, testData$Diabetes_binary)
 
+log_preds2 <- predict(log_model2, newdata = testData, type = "prob")
+log_loss_test2 <- mnLogLoss(log_preds2, testData$Diabetes_binary)
+
+log_preds3 <- predict(log_model3, newdata = testData, type = "prob")
+log_loss_test3 <- mnLogLoss(log_preds3, testData$Diabetes_binary)
+
+print(c(log_loss_test1, log_loss_test2, log_loss_test3))
+
+# Predict on the test set using the classification tree model
+tree_preds <- predict(tree_model, newdata = testData, type = "prob")
+tree_loss_test <- mnLogLoss(tree_preds, testData$Diabetes_binary)
+print(tree_loss_test)
+
+# Predict on the test set using the random forest model
+rf_preds <- predict(rf_model, newdata = testData, type = "prob")
+rf_loss_test <- mnLogLoss(rf_preds, testData$Diabetes_binary)
+print(rf_loss_test)
+
+# Compare the log loss of all models
+model_comparison <- data.frame(
+  Model = c("Full Logistic Regression", "Reduced Model 1", "Reduced Model 2", "Classification Tree", "Random Forest"),
+  LogLoss = c(log_loss_test1, log_loss_test2, log_loss_test3, tree_loss_test, rf_loss_test)
+)
+print(model_comparison)
+```
