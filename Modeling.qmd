@@ -9,7 +9,7 @@ editor: visual
 ```{r}
 #| echo: FALSE
 
-packages <- c("tidyverse", "caret", "glmnet", "MASS")
+packages <- c("tidyverse", "caret", "glmnet")
 
 install_if_missing <- function(package) {
   if (!require(package, character.only = TRUE)) {
@@ -27,7 +27,30 @@ In this project, we are working with a dataset from the Diabetes Health Indicato
 
 First we will start by reading in the data and splitting it into training and testing sets.
 ```{r}
-DBH <- read_csv("preprocessed_diabetes_data.csv")
+# Reading in the data using a relative path and manipulating it
+
+# reading in the csv file
+DBH <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv")
+
+# selecting the variables I want
+DBH <- DBH[, c(1,2,5,6,9,11,19,20,22)]
+
+# Changing the possible factor variables into factors
+DBH$HighBP <- factor(DBH$HighBP, levels = c(0, 1), labels = c("Not_High", "High"))
+DBH$Smoker <- factor(DBH$Smoker, levels = c(0, 1), labels = c("No", "Yes"))
+DBH$PhysActivity <- factor(DBH$PhysActivity, levels = c(0, 1), labels = c("No", "Yes"))
+DBH$Veggies <- factor(DBH$Veggies, levels = c(0, 1), labels = c("No", "Yes"))
+DBH$Sex <- factor(DBH$Sex, levels = c(0, 1), labels = c("Female", "Male"))
+DBH$Age <- factor(DBH$Age, 
+                  levels = 1:13, 
+                  labels = c("18_24", "25_29", "30_34", "35_39", "40_44", "45_49", 
+                             "50_54", "55_59", "60_64", "65_69", "70_74", "75_79", "80_plus"))
+DBH$Income <- factor(DBH$Income, 
+                     levels = 1:8, 
+                     labels = c("Less_than_10k", "10k_to_15k", "15k_to_20k", 
+                                "20k_to_25k", "25k_to_35k", "35k_to_50k", 
+                                "50k_to_75k", "75k_or_more"))
+DBH$Diabetes_binary <- factor(DBH$Diabetes_binary, levels = c(0, 1), labels = c("No_Diabetes", "Diabetes"))
 
 # Setting seed and splitting data into training and test sets
 set.seed(270)
@@ -45,9 +68,9 @@ Log loss, also known as logistic loss or cross-entropy loss, is a measure of how
 First we will start our modeling with looking at logistic regression models. Logistic regression is a statistical method of modeling to display relationships between a binary response variable and independent variables. Logistic regression's binary outcome results in the prediction of the probability of the outcome which can be useful for risk assessment. They are easily interpretable due to the coefficients being displayed as log odds of the outcome making it easy to understand the impact of each predictor.
 
 ```{r}
-# Control for cross evalution with 5-folds
+# Control for cross evalution with 3-folds
 
-train_control <- trainControl(method = "cv", number = 5, classProbs = TRUE, summaryFunction = mnLogLoss)
+train_control <- trainControl(method = "cv", number = 3, classProbs = TRUE, summaryFunction = mnLogLoss)
 
 # Re-set seed
 set.seed(270)
@@ -102,28 +125,44 @@ print(rf_model)
 ```
 
 ## Final Model Selection
-
 ```{r}
+# Ensure testData$Diabetes_binary has the same levels as trainData$Diabetes_binary
+testData$Diabetes_binary <- factor(testData$Diabetes_binary, levels = levels(trainData$Diabetes_binary))
+
+# Helper function to calculate mnLogLoss with debugging output
+calculate_log_loss <- function(preds, actual) {
+  data <- data.frame(obs = actual, preds)
+  print(head(data))  # Print the head of the data frame for debugging
+  print(table(data$obs))  # Print a table of the observed values for debugging
+  mnLogLoss(data, lev = levels(actual))
+}
+
 # Predict on the test set using the best logistic regression model
-log_preds <- predict(log_model1, newdata = testData, type = "prob")
-log_loss_test1 <- mnLogLoss(log_preds, testData$Diabetes_binary)
+log_preds1 <- predict(log_model1, newdata = testData, type = "prob")
+print(head(log_preds1))  # Print the head of the predicted probabilities for debugging
+log_loss_test1 <- calculate_log_loss(log_preds1, testData$Diabetes_binary)
 
 log_preds2 <- predict(log_model2, newdata = testData, type = "prob")
-log_loss_test2 <- mnLogLoss(log_preds2, testData$Diabetes_binary)
+print(head(log_preds2))  # Print the head of the predicted probabilities for debugging
+log_loss_test2 <- calculate_log_loss(log_preds2, testData$Diabetes_binary)
 
 log_preds3 <- predict(log_model3, newdata = testData, type = "prob")
-log_loss_test3 <- mnLogLoss(log_preds3, testData$Diabetes_binary)
+print(head(log_preds3))  # Print the head of the predicted probabilities for debugging
+log_loss_test3 <- calculate_log_loss(log_preds3, testData$Diabetes_binary)
 
+# Print the log loss values
 print(c(log_loss_test1, log_loss_test2, log_loss_test3))
 
 # Predict on the test set using the classification tree model
 tree_preds <- predict(tree_model, newdata = testData, type = "prob")
-tree_loss_test <- mnLogLoss(tree_preds, testData$Diabetes_binary)
+print(head(tree_preds))  # Print the head of the predicted probabilities for debugging
+tree_loss_test <- calculate_log_loss(tree_preds, testData$Diabetes_binary)
 print(tree_loss_test)
 
 # Predict on the test set using the random forest model
 rf_preds <- predict(rf_model, newdata = testData, type = "prob")
-rf_loss_test <- mnLogLoss(rf_preds, testData$Diabetes_binary)
+print(head(rf_preds))  # Print the head of the predicted probabilities for debugging
+rf_loss_test <- calculate_log_loss(rf_preds, testData$Diabetes_binary)
 print(rf_loss_test)
 
 # Compare the log loss of all models
