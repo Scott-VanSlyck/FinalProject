@@ -74,20 +74,22 @@ DBH <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv")
 DBH <- DBH %>% select(Diabetes_binary, HighBP, BMI, Smoker, PhysActivity, Veggies, Sex, Age, Income)
 
 # Changing the possible factor variables into factors
-DBH$Diabetes_binary <- factor(DBH$Diabetes_binary, levels = c(0, 1), labels = c("No Diabetes", "Diabetes"))
-DBH$HighBP <- factor(DBH$HighBP, levels = c(0,1), labels = c("Not High", "High"))
-DBH$Smoker <- factor(DBH$Smoker, levels = c(0,1), labels = c("No", "Yes"))
-DBH$PhysActivity <- factor(DBH$PhysActivity, levels = c(0,1), labels = c("No", "Yes"))
-DBH$Veggies <- factor(DBH$Veggies, levels = c(0,1), labels = c("No", "Yes"))
-DBH$Sex <- factor(DBH$Sex, levels = c(0,1), labels = c("Female", "Male"))
-DBH$Age <- factor(DBH$Age, levels = 1:13,
-                  labels = c("18-24", "25-29", "30-34", "35-39", "40-44", "45-49", 
-                             "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"))
+DBH$HighBP <- factor(DBH$HighBP, levels = c(0, 1), labels = c("Not_High", "High"))
+DBH$Smoker <- factor(DBH$Smoker, levels = c(0, 1), labels = c("No", "Yes"))
+DBH$PhysActivity <- factor(DBH$PhysActivity, levels = c(0, 1), labels = c("No", "Yes"))
+DBH$Veggies <- factor(DBH$Veggies, levels = c(0, 1), labels = c("No", "Yes"))
+DBH$Sex <- factor(DBH$Sex, levels = c(0, 1), labels = c("Female", "Male"))
+DBH$Age <- factor(DBH$Age, 
+                  levels = 1:13, 
+                  labels = c("18_24", "25_29", "30_34", "35_39", "40_44", "45_49", 
+                             "50_54", "55_59", "60_64", "65_69", "70_74", "75_79", "80_plus"))
 DBH$Income <- factor(DBH$Income, 
                      levels = 1:8, 
-                     labels = c("Less than $10,000", "$10,000 to $14,999", "$15,000 to $19,999", 
-                                "$20,000 to $24,999", "$25,000 to $34,999", "$35,000 to $49,999", 
-                                "$50,000 to $74,999", "$75,000 or more"))
+                     labels = c("Less_than_10k", "10k_to_15k", "15k_to_20k", 
+                                "20k_to_25k", "25k_to_35k", "35k_to_50k", 
+                                "50k_to_75k", "75k_or_more"))
+DBH$Diabetes_binary <- factor(DBH$Diabetes_binary, levels = c(0, 1), labels = c("No_Diabetes", "Diabetes"))
+
 
 # Checking for N/A values
 colSums(is.na(DBH))
@@ -135,4 +137,10 @@ Lastly, a bar plot that helps indicate the distribution of age groups across the
 ggplot(DBH, aes(x = Diabetes_binary, fill = Age)) +
   geom_bar(position = "fill") +
   labs(title = "Age vs. Diabetes Status", x = "Diabetes Status", y = "Proportion", fill = "Age Group")
+```
+
+Saving as a csv to use for modeling
+```{r}
+# Reading in the data
+write_csv(DBH, "preprocessed_diabetes_data.csv")
 ```

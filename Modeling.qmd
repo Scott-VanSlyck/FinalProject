@@ -9,7 +9,7 @@ editor: visual
 ```{r}
 #| echo: FALSE
 
-packages <- c("tidyverse")
+packages <- c("tidyverse", "caret", "glmnet")
 
 install_if_missing <- function(package) {
   if (!require(package, character.only = TRUE)) {
@@ -23,12 +23,79 @@ lapply(packages, install_if_missing)
 
 ## Introduction
 
+In this project, we are working with a dataset from the Diabetes Health Indicators to predict the diabetes status of individuals. The response variable, `Diabetes_binary`, indicates whether or not a patient has diabetes.  Our goal is to create predictive models for the `Diabetes_binary` variable using various machine learning techniques. We will evaluate the models using log loss as our primary metric.
+
+First we will start by reading in the data and splitting it into training and testing sets.
+```{r}
+DBH <- read_csv("preprocessed_diabetes_data.csv")
+
+# Setting seed and splitting data into training and test sets
+set.seed(270)
+
+trainIndex <- createDataPartition(DBH$Diabetes_binary, p = 0.7, list = FALSE)
+
+trainData <- DBH[trainIndex, ]
+testData <- DBH[-trainIndex, ]
+```
+
+Log loss, also known as logistic loss or cross-entropy loss, is a measure of how well a model's predicted probabilities match the actual outcomes. It evaluates how accurate and confident a model is about it's prediction, it penalizes wrong predictions with high confidence more than one that is unsure. These penalties result in the model taking more precise and cautious estimates. Where it differs from accuracy is it provides a more detailed view of performance when considering confidence of predictions. This is useful in scenarios where predicting the majority class can give misleadingly high accuracy, focusing on probability estimates allows log loss to help create more reliable models for real-world applications where knowing the likelihood of an outcome is of utmost importance.
+
 
 ## Logistic Regression Models
+First we will start our modeling with looking at logistic regression models. Logistic regression is a statistical method of modeling to display relationships between a binary response variable and independent variables. Logistic regression's binary outcome results in the prediction of the probability of the outcome which can be useful for risk assessment. They are easily interpretable due to the coefficients being displayed as log odds of the outcome making it easy to understand the impact of each predictor.
+
+```{r}
+# Control for cross evalution with 5-folds
+
+train_control <- trainControl(method = "cv", number = 5, classProbs = TRUE, summaryFunction = mnLogLoss)
+
+# Re-set seed
+set.seed(270)
+
+# Model 1: Basic Logistic Regression
+log_model1 <- train(Diabetes_binary ~ ., data = trainData, method = "glm", family = "binomial", 
+                    trControl = train_control, metric = "logLoss")
+
+# Model 2: Logistic Regression with Stepwise Selection
+log_model2 <- train(Diabetes_binary ~ ., data = trainData, method = "glmStepAIC", family = "binomial", 
+                    trControl = train_control, direction = "backward",  metric = "logLoss")
+
+# Model 3: LASSO Logistic Regression
+lasso_grid <- expand.grid(alpha = 1, lambda = seq(0, 1, by = 0.1))
+
+lasso_log_model <- train(Diabetes_binary ~ ., data = trainData, method = "glmnet", 
+                         trControl = train_control, metric = "logLoss", tuneGrid = lasso_grid)
+
+# Compare models
+resamples_log <- resamples(list(Basic = log_model1, Stepwise = log_model2, LASSO = lasso_log_model))
+summary(resamples_log)
+```
 
 ## Classification Tree
 
+```{r}
+set.seed(270)
+
+tree_model <- train(Diabetes_binary ~ ., data = trainData, method = "rpart", 
+                    trControl = train_control, metric = "logLoss", tuneLength = 10)
+
+# Print tree model
+print(tree_model)
+```
+
 ## Random Forest
+
+```{r}
+set.seed(270)
+
+rf_grid <- expand.grid(mtry = seq(2, ncol(trainData)-1, by = 2))
+
+rf_model <- train(Diabetes_binary ~ ., data = trainData, method = "rf", 
+                  trControl = train_control, metric = "logLoss", tuneGrid = rf_grid)
+
+# Print random forest model
+print(rf_model)
+```
 
 ## Final Model Selection
 
