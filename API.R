@@ -83,3 +83,8 @@ function() {
     github_url = "https://Scott-VanSlyck.github.io/FinalProject"
   )
 }
+
+# Example function calls for the API
+# Example 1: curl "http://localhost:8000/pred?HighBP=1&BMI=30.0&Smoker=1&PhysActivity=0&Veggies=0&Sex=0&Age=10&Income=4"
+# Example 2: curl "http://localhost:8000/pred?HighBP=0&BMI=25.0&Smoker=0&PhysActivity=1&Veggies=1&Sex=1&Age=6&Income=8"
+# Example 3: curl "http://localhost:8000/pred?HighBP=1&BMI=28.0&Smoker=1&PhysActivity=0&Veggies=0&Sex=1&Age=9&Income=2"

@@ -6,6 +6,7 @@ format: html
 editor: visual
 ---
 
+Loading/Installing packages necessary
 ```{r}
 #| echo: FALSE
 
@@ -99,6 +100,7 @@ summary(resamples_log)
 ```
 
 ## Classification Tree
+A classification tree is a supervised machine learning algorithm used to classify data into certain classes. The classification tree works by splitting the data set into subsets based on the value of a feature which create branches for each possible value. It is particularly useful in this scenario because our response value is a classified variable with either no diabetes or diabetes. This allows the algorithm to select the right features and split on the right values to classify whether or not a patient has diabetes.
 
 ```{r}
 set.seed(270)
@@ -111,6 +113,8 @@ print(tree_model)
 ```
 
 ## Random Forest
+A random forest is a robust machine learning model that is an improved version of a decision tree in comparison to individual ones. It combines multiple trees, averages them out, and takes randomness for it's selection of features. This allows for higher accuracy and less bias. It is valuable for both classification and regression learning. The downside is that it is computationally intensive, for the code below I have had to limit the trees it produces to 100 and reduce the 5-fold cross validation to 3-fold CV since the prior was taking more than an hour to run.
+
 
 ```{r}
 set.seed(270)
@@ -172,3 +176,5 @@ model_comparison <- data.frame(
 )
 print(model_comparison)
 ```
+
+The best model, selected by which final model had the lowest logLoss was the full logistic regression model.
